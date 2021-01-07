@@ -83,9 +83,6 @@ def train_prog(exe, program, loss, node2vec_pyreader, args, train_steps):
                 main_program=program)
         if step == train_steps:
             break
-    print(all_emb)
-
-    np.save(args.emb_path, all_emb)
 
 def test(args):
     data = load_raw_edges_fn(args.edge_path, args.undirected)
