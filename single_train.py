@@ -58,10 +58,14 @@ def optimization(base_lr, loss, train_steps, optimizer='sgd'):
 def train_prog(exe, program, loss, node2vec_pyreader, args, train_steps):
     step = 0
     node2vec_pyreader.start()
-	
-    profiler.start_profiler("All")
+
     while True:
         try:
+            if step == 20:
+                profiler.start_profiler("All")
+            if step == 40:
+                profiler.stop_profiler("total", "/tmp/profile")	
+
             begin_time = time.time()
             loss_val = exe.run(program, fetch_list=[loss])
             log.info("step %s: loss %.5f speed: %.5f s/step" %
@@ -71,7 +75,6 @@ def train_prog(exe, program, loss, node2vec_pyreader, args, train_steps):
             node2vec_pyreader.reset()
 
         if step % args.steps_per_save == 0 or step == train_steps:
-            profiler.stop_profiler("total", "/tmp/profile")	
             model_save_dir = args.save_path
             model_path = os.path.join(model_save_dir, str(step))
             if not os.path.exists(model_save_dir):
@@ -204,8 +207,26 @@ def train(args):
 
     pyreader.decorate_tensor_provider(gen_func)
 
-    train_prog(exe, F.default_main_program(), loss, pyreader, args, train_steps)
-    print("fleet try to stop worker\r\n")
+    cpu_num = int(os.getenv("CPU_NUM"))
+    exec_strategy = F.ExecutionStrategy()
+    exec_strategy.num_threads = cpu_num * 2
+
+    build_strategy = F.BuildStrategy()
+
+    if cpu_num > 1:
+        build_strategy.reduce_strategy = F.BuildStrategy.ReduceStrategy.Reduce
+
+    prog = F.compiler.CompiledProgram(
+        F.default_main_program()).with_data_parallel(
+            loss_name=loss.name,
+            build_strategy=build_strategy,
+            exec_strategy=exec_strategy)
+ 
+    import time
+    b = time.time()
+    train_prog(exe, prog, loss, pyreader, args, train_steps)
+    e = time.time()
+    print("training using time: {}\r\n".format(e - b))
 
 if __name__ == '__main__':
 

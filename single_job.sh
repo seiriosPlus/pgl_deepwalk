@@ -40,7 +40,6 @@ fi
 echo "leo: $b"
 echo "role:$TRAINING_ROLE"
 echo "id:$PADDLE_TRAINER_ID"
-export CPU_NUM=4 
 time python -u single_train.py --num_sample_workers 4 --num_nodes $num_nodes --optimizer $optimizer --walkpath_files $walkpath_files --epoch $epoch \
             --is_distributed $distributed_embedding --lr $learning_rate --neg_num $neg_num --walk_len $walk_len --win_size $win_size --is_sparse $is_sparse --hidden_size $dim \
             --batch_size $batch_size --steps_per_save $steps_per_save --train_files $train_files --edge_path=./graph_data --save_path=./train_modle --worker_num=8 --cpu_num=8   >local_dir/single.log 2>&1 &
